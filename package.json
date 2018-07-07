@@ -4,12 +4,20 @@
   "description": "Command Line Tools for Parsony",
   "main": "index.js",
   "author": "Eric Phelan",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/epcphelan/parsony-cli.git"
+  },
   "license": "MIT",
   "dependencies": {
     "commander": "^2.15.1",
     "fs": "0.0.1-security",
     "inquirer": "^5.2.0"
   },
+  "bugs": {
+    "url": "https://github.com/epcphelan/parsony-cli/issues"
+  },
+  "homepage": "https://github.com/epcphelan/parsony-cli#readme",
   "bin": {
     "parsony": "index.js"
   }
