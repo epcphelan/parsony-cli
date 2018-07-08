@@ -102,22 +102,89 @@ const parameterValidationValuePrompt = [
   }
 ];
 
-const addAnother = [
+const initProjectPrompt = [
+  {
+    type: "input",
+    name: "name",
+    message: "Project name:",
+    validation:input =>{
+      return input.length > 1 ? true: "Name cannot be blank.";
+    }
+  }
+];
+
+const initDBPrompt = [
   {
     type: "confirm",
-    name: "addAnother",
-    message: "Add another param?:",
+    name: "setup",
+    message: "Configure database connection now?",
     default: true
   }
 ];
 
+const configureDBPrompt = [
+  {
+    type: "input",
+    name: "host",
+    message: "Host:",
+    default:"localhost",
+  },
+  {
+    type: "input",
+    name: "port",
+    message: "Port:",
+    default:8889,
+  },
+  {
+    type: "input",
+    name: "username",
+    message: "Username:",
+    default:"root",
+  },
+  {
+    type: "input",
+    name: "password",
+    message: "Password:",
+    default:""
+  },
+  {
+    type: "input",
+    name: "database",
+    message: "Database:",
+    default:"parsony"
+  },
+  {
+    type: "input",
+    name: "dialect",
+    message: "Dialect:",
+    default:"mysql",
+    validation:input =>{
+      return input.length > 1 ? true: "Name cannot be blank.";
+    }
+  }
+];
+
+const runTestsPrompt = [
+  {
+    type: "confirm",
+    name: "shouldRun",
+    message: "It's a good idea to run the tests.  Would you like to do so? If so, make sure your DB server and Redis are running.",
+    default:true,
+  }
+];
+
+
+
 module.exports = {
-  addAnother,
+  initDBPrompt,
+  initProjectPrompt,
   parameterValidationValuePrompt,
   parameterPrompt,
   shouldGatherParamsPrompt,
   getEndpointPrompt,
   makeServicePrompt,
   getServicePrompt,
-  endpointDetailPrompt
+  endpointDetailPrompt,
+  configureDBPrompt,
+  runTestsPrompt
 };

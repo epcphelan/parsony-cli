@@ -4,9 +4,8 @@
 const program = require("commander");
 const { checkIsService, createService } = require("./libs/service");
 const { endpointWithService } = require("./libs/endpoint");
+const { doSetup } = require('./libs/starter');
 
-let service = null;
-let endpoint = null;
 
 program.version("1.0.0").description("Parsony CLI");
 
@@ -20,7 +19,7 @@ program
         console.log("This service does not exist yet.");
         createService(serviceName, err => {
           if (err) {
-            console.log(err);
+            console.log('Something went wrong:',err);
           } else {
             endpointWithService(serviceName);
           }
@@ -30,5 +29,32 @@ program
       }
     });
   });
+
+program
+  .command("addService")
+  .alias("+s")
+  .description("Create a new service")
+  .action(()=>{
+    checkIsService((isService,name) =>{
+      if(isService){
+        console.log("This service already exists.");
+      } else {
+        createService(name, err=>{
+          if(err){
+            console.log(err)
+          } else{
+            console.log(`New service, ${name}, has been created.`)
+          }
+        })
+      }
+    })
+  });
+
+program
+  .command("initProject")
+  .alias("init")
+  .description("Create new Parsony project.")
+  .action(doSetup);
+
 
 program.parse(process.argv);

@@ -15,7 +15,15 @@ cd <name>
 parsony init
 ```
 
-Create new endpoint
+Create new Service
+
+```
+parsony +s
+
+```
+
+Create new endpoint - if service does not yet exist, will also create new
+service.
 
 ``` 
 parsony +

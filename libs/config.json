@@ -1,0 +1,6 @@
+{
+  "starters":{
+    "WebServices":"epcphelan/parsony-services-starter",
+    "WebApp":"epcphelan/parsony-react-starter"
+  }
+}

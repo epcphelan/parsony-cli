@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const { prompt } = require("inquirer");
 const {
-  addAnother,
   parameterValidationValuePrompt,
   parameterPrompt,
   shouldGatherParamsPrompt,
