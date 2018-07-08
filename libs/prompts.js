@@ -83,8 +83,8 @@ const parameterPrompt = [
     choices: [
       "min. length",
       "max. length",
-      "proper case",
       "valid email",
+      "regex",
       "value in []",
       "url"
     ]

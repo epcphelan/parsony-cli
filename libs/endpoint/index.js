@@ -1,6 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 const { prompt } = require("inquirer");
+
+const {
+  shouldMakeNewService,
+  getServiceName,
+  checkIsService,
+  makeNewService
+} = require("../service");
+
 const {
   parameterValidationValuePrompt,
   parameterPrompt,
@@ -20,45 +28,32 @@ let args = {
   params: []
 };
 
-function endpointWithService(serviceName) {
-  checkIsUniqueEndpoint(serviceName, (err, endpointName) => {
-    if (err.length > 0) {
-      console.log(`Could not create new endpoint: ${err.join(", ")}`);
-    } else {
-      args.service = serviceName;
-      args.endpoint = endpointName;
-      getEndpointSummary(() => {
-        gatherParams(function() {
-          addEndpointToService(args, (err, contract) => {
-            if (err) {
-              console.log(
-                `Failed to create endpoint. Error: ${JSON.stringify(err)}`
-              );
-            } else {
-              console.log(
-                `Success: endpoint created:
-                  ${JSON.stringify(contract, null, 2)}`
-              );
-            }
-          });
-        });
-      });
+async function newEndpoint() {
+  try {
+    const { service } = await getServiceName();
+
+    if (!checkIsService(service)) {
+      console.log("This service does not exist yet.");
+      const { newService } = await shouldMakeNewService();
+      if (newService) {
+        makeNewService(service);
+      } else {
+        process.exit();
+      }
     }
-  });
+    const { endpoint } = await getEndpointName();
+    checkUniqueEndpoints(service, endpoint);
+    await createEndpoint(endpoint, service);
+  } catch (e) {
+    console.log(e.message);
+  }
 }
 
-function checkIsUniqueEndpoint(serviceName, callback) {
-  prompt(getEndpointPrompt).then(answers => {
-    callback(
-      checkUniqueEndpoints(serviceName, answers.endpoint),
-      answers.endpoint
-    );
-  });
+function getEndpointName() {
+  return prompt(getEndpointPrompt);
 }
 
 function checkUniqueEndpoints(service, endpoint) {
-  let errors = [];
-
   let pathToInterface = getTargetFile(service, "interface");
 
   let interfaceObj = getInterfaceObj(pathToInterface);
@@ -68,67 +63,73 @@ function checkUniqueEndpoints(service, endpoint) {
   let namespacedREST = `/${service}/${endpoint}`;
 
   if (!uniqueRESTEndpoint(namespacedREST, endpoints)) {
-    errors.push(`Duplicate REST endpoint: ${namespacedREST}`);
+    throw new Error(`Duplicate REST endpoint: ${namespacedREST}`);
   }
   if (!uniqueJSONEndpoint(namespacedEndpoint, endpoints)) {
-    errors.push(`Duplicate API endpoint: ${namespacedEndpoint}`);
+    throw new Error(`Duplicate API endpoint: ${namespacedEndpoint}`);
   }
-  return errors;
 }
 
-function getInterfaceObj(pathToInterface) {
-  let pathTo = path.join(process.cwd(), pathToInterface);
-  return require(pathTo);
+async function createEndpoint(endpointName, serviceName) {
+  args.service = serviceName;
+  args.endpoint = endpointName;
+
+  const {
+    desc,
+    method,
+    apiKeyRequired,
+    sessionTokenRequired
+  } = await getEndpointSummary();
+
+  args.desc = desc;
+  args.method = method;
+  args.apiKeyRequired = apiKeyRequired;
+  args.sessionTokenRequired = sessionTokenRequired;
+
+  await gatherParams();
+  const contract = await addEndpointToService(args);
+  console.log(
+    `Success: endpoint created:
+    ${JSON.stringify(contract, null, 2)}`
+  );
 }
 
-function getEndpointSummary(callback) {
-  prompt(endpointDetailPrompt).then(answers => {
-    args.desc = answers.desc;
-    args.method = answers.method;
-    args.apiKeyRequired = answers.apiKeyRequired;
-    args.sessionTokenRequired = answers.sessionTokenRequired;
-    callback();
-  });
+function getEndpointSummary() {
+  return prompt(endpointDetailPrompt);
 }
 
-function addEndpointToService(args, callback) {
-  let errors = [];
+async function addEndpointToService(args) {
+  const pathToInterface = getTargetFile(args.service, "interface");
+  const pathToHandlers = getTargetFile(args.service, "handlers");
 
-  let pathToInterface = getTargetFile(args.service, "interface");
-  let pathToHandlers = getTargetFile(args.service, "handlers");
+  const interfaceObj = getInterfaceObj(pathToInterface);
+  const endpoints = interfaceObj.endpoints;
 
-  let interfaceObj = getInterfaceObj(pathToInterface);
-  let endpoints = interfaceObj.endpoints;
-
-  let namespacedEndpoint = `${args.service}.${args.endpoint}`;
-  let namespacedREST = `/${args.service}/${args.endpoint}`;
+  const namespacedEndpoint = `${args.service}.${args.endpoint}`;
+  const namespacedREST = `/${args.service}/${args.endpoint}`;
 
   args.namespacedREST = namespacedREST;
   args.namespacedEndpoint = namespacedEndpoint;
 
   if (!uniqueRESTEndpoint(`${args.method}:${namespacedREST}`, endpoints)) {
-    errors.push(`Duplicate REST endpoint: ${namespacedREST} `);
+    throw new Error(`Duplicate REST endpoint: ${namespacedREST} `);
   }
   if (!uniqueJSONEndpoint(namespacedEndpoint, endpoints)) {
-    errors.push(`Duplicate API endpoint: ${namespacedEndpoint} `);
+    throw new Error(`Duplicate API endpoint: ${namespacedEndpoint} `);
   }
 
-  let updatedInterface = appendedInterface(interfaceObj, args);
-  let newHandler = appendedFunction(args);
+  const updatedInterface = appendedInterface(interfaceObj, args);
+  const newHandler = appendedFunction(args);
 
-  if (errors.length === 0) {
-    fs.writeFile(pathToInterface, updatedInterface, function(err) {
-      if (err) {
-        callback(err);
-      } else {
-        fs.appendFile(pathToHandlers, newHandler, function(err) {
-          callback(err, interfaceObj);
-        });
-      }
-    });
-  } else {
-    callback(errors);
-  }
+  fs.writeFileSync(pathToInterface, updatedInterface);
+  fs.appendFileSync(pathToHandlers, newHandler);
+
+  return interfaceObj;
+}
+
+function getInterfaceObj(pathToInterface) {
+  let pathTo = path.join(process.cwd(), pathToInterface);
+  return require(pathTo);
 }
 
 function getTargetFile(service, stringIdentifier) {
@@ -169,6 +170,40 @@ function uniqueJSONEndpoint(jsonAPI, interfaceObj) {
   return true;
 }
 
+function appendedInterface(interfaceObj, args) {
+  let endpoints = interfaceObj.endpoints;
+  interfaceObj.endpoints = updatedEndpointsArray(endpoints, args);
+  return JSON.stringify(interfaceObj, null, 2);
+}
+
+function appendedFunction(args) {
+  return generateFunction(
+    args.endpoint,
+    args.params,
+    args.desc,
+    args.sessionTokenRequired
+  );
+}
+
+function updatedEndpointsArray(endpointsArray, newEndpointArgs) {
+  const newEndpointObj = {
+    json_api: newEndpointArgs.namespacedEndpoint,
+    RESTUrl: `${newEndpointArgs.namespacedREST}`,
+    method: newEndpointArgs.method,
+    desc: newEndpointArgs.desc,
+    handler: `${newEndpointArgs.endpoint}`,
+    authentication: {
+      api_key: newEndpointArgs.apiKeyRequired,
+      session_token: newEndpointArgs.sessionTokenRequired
+    },
+    params: newEndpointArgs.params,
+    returns: {},
+    errors: []
+  };
+  endpointsArray.push(newEndpointObj);
+  return endpointsArray;
+}
+
 function generateFunction(functionName, constArgs, description, sessionReq) {
   return `
 /**
@@ -195,20 +230,6 @@ exports.${functionName} = async data => {
 `;
 }
 
-function generateReturn(params, session) {
-  let out = "return { \n";
-  out += params.reduce((s, p) => {
-    return s + `\v\v\v ${p.param},\n`;
-  }, "");
-
-  if (session) {
-    out += "\v\v\v userId \n";
-  }
-
-  out += "\v };";
-  return out;
-}
-
 function generateConstants(params, session) {
   let out = "const { \n";
   out += params.reduce((s, p) => {
@@ -220,6 +241,20 @@ function generateConstants(params, session) {
   }
 
   out += "\v } = data;";
+  return out;
+}
+
+function generateReturn(params, session) {
+  let out = "return { \n";
+  out += params.reduce((s, p) => {
+    return s + `\v\v\v ${p.param},\n`;
+  }, "");
+
+  if (session) {
+    out += "\v\v\v userId \n";
+  }
+
+  out += "\v };";
   return out;
 }
 
@@ -245,105 +280,84 @@ function paramsComments(param) {
   }
 }
 
-function appendedInterface(interfaceObj, args) {
-  let endpoints = interfaceObj.endpoints;
-  interfaceObj.endpoints = updatedEndpointsArray(endpoints, args);
-  return JSON.stringify(interfaceObj, null, 2);
-}
-
-function updatedEndpointsArray(endpointsArray, newEndpointArgs) {
-  const newEndpointObj = {
-    json_api: newEndpointArgs.namespacedEndpoint,
-    RESTUrl: `${newEndpointArgs.namespacedREST}`,
-    method: newEndpointArgs.method,
-    desc: newEndpointArgs.desc,
-    handler: `${newEndpointArgs.endpoint}`,
-    authentication: {
-      api_key: newEndpointArgs.apiKeyRequired,
-      session_token: newEndpointArgs.sessionTokenRequired
-    },
-    params: newEndpointArgs.params,
-    returns: {},
-    errors: []
-  };
-  endpointsArray.push(newEndpointObj);
-  return endpointsArray;
-}
-
-function appendedFunction(args) {
-  return generateFunction(
-    args.endpoint,
-    args.params,
-    args.desc,
-    args.sessionTokenRequired
-  );
-}
-
-function gatherParams(callback) {
-  prompt(shouldGatherParamsPrompt).then(answers => {
-    const { addParams } = answers;
-    if (addParams === false) {
-      callback();
-    } else {
-      prompt(parameterPrompt).then(answers => {
-        if (args.params.indexOf(answers.param) === -1) {
-          handleParams(answers, validations => {
-            let param = {
-              param: answers.param,
-              required: answers.required,
-              validation: validations
-            };
-            args.params.push(param);
-            gatherParams(callback);
-          });
-        } else if (answers.param.length > 0) {
-          gatherParams(callback);
-        }
-      });
+async function gatherParams() {
+  const { addParams } = await shouldGatherParams();
+  if (addParams) {
+    const response = await getParam();
+    if (args.params.indexOf(response.param) === -1) {
+      const validations = await handleParam(response);
+      let param = {
+        param: response.param,
+        required: response.required,
+        validation: validations
+      };
+      args.params.push(param);
+      await gatherParams();
+    } else if (response.param.length > 0) {
+      await gatherParams();
     }
-  });
+  }
 }
 
-function handleParams(params, callback) {
+function shouldGatherParams() {
+  return prompt(shouldGatherParamsPrompt);
+}
+
+function getParam() {
+  return prompt(parameterPrompt);
+}
+
+async function handleParam(params) {
   const validations = {};
   const { validations: rule } = params;
-  validations.is_type = params.type;
-  if (rule.indexOf("proper case") > -1) {
-    validations.proper_case = true;
+  switch (params.type) {
+    case 'array':
+      validations.is_array = true;
+      break;
+    case 'json':
+      validations.is_json = true;
+      break;
+    default:
+      validations.is_type = params.type;
+      break;
   }
   if (rule.indexOf("valid email") > -1) {
     validations.valid_email = true;
-  }
-  if (rule.indexOf("proper case") > -1) {
-    validations.proper_case = true;
-  }
-  if (rule.indexOf("value in []") > -1) {
-    validations.in_set = [];
   }
   if (rule.indexOf("url") > -1) {
     validations.is_url = true;
   }
   if (rule.indexOf("min. length") > -1) {
     parameterValidationValuePrompt[0].message = "min. length = ";
-    prompt(parameterValidationValuePrompt).then(answer => {
-      const { val } = answer;
-      validations.min_length = val;
-      if (rule.indexOf("max. length") > -1) {
-        parameterValidationValuePrompt[0].message = "max. length = ";
-        prompt(parameterValidationValuePrompt).then(answer => {
-          const { val } = answer;
-          validations.max_length = val;
-          callback(validations);
-        });
-      } else {
-        callback(validations);
-      }
-    });
-  } else {
-    callback(validations);
+    const {val} = await paramValidationValue();
+    validations.min_length = val;
   }
+  if (rule.indexOf("max. length") > -1) {
+      parameterValidationValuePrompt[0].message = "max. length = ";
+      const { val } = await paramValidationValue();
+      validations.max_length = val;
+  }
+  if (rule.indexOf("value in []") > -1) {
+    parameterValidationValuePrompt[0].message = "set = [] (eg. 1,5,7): ";
+    const { val } = await paramValidationValue();
+    let valArray = val.split(',');
+    if(params.type==='number'){
+      valArray = valArray.map(v=>parseFloat(v));
+    }
+    validations.in_set = valArray;
+  }
+  if (rule.indexOf("regex") > -1) {
+    parameterValidationValuePrompt[0].message = "regex pattern = ";
+    const { val } = await paramValidationValue();
+    validations.regex = val;
+  }
+  return validations;
+}
+
+function paramValidationValue() {
+  return prompt(parameterValidationValuePrompt);
 }
 
 module.exports = {
-  endpointWithService
+  newEndpoint
 };

@@ -1,17 +1,20 @@
-const { makeServicePrompt, getServicePrompt } = require("../prompts");
-const { prompt } = require("inquirer");
 const fs = require("fs");
 const path = require("path");
+const { prompt } = require("inquirer");
+const { makeServicePrompt, getServicePrompt } = require("../prompts");
 
-function createService(serviceName, callback) {
-  prompt(makeServicePrompt).then(({ newService }) => {
-    if (newService === true) {
-      makeNewService(serviceName, callback);
+async function newService() {
+  const name = await getServiceName();
+  if (checkIsService(name)) {
+    console.log("This service already exists.");
+  } else {
+    if (await shouldMakeNewService()) {
+      makeNewService(name);
     }
-  });
+  }
 }
 
-function makeNewService(serviceName, callback) {
+function makeNewService(serviceName) {
   const _servicesDirectory = path.join("services", serviceName);
   fs.mkdirSync(_servicesDirectory);
 
@@ -35,14 +38,19 @@ function makeNewService(serviceName, callback) {
   );
 
   let templateFile = fs.readFileSync(template);
-  fs.writeFileSync(path.join(_servicesDirectory, handlersFile),templateFile);
-  callback();
+  fs.writeFileSync(path.join(_servicesDirectory, handlersFile), templateFile);
 }
 
-function checkIsService(callback) {
-  prompt(getServicePrompt).then(answers => {
-    callback(_isServiceDirectory(answers.service), answers.service);
-  });
+function shouldMakeNewService() {
+  return prompt(makeServicePrompt);
+}
+
+function getServiceName() {
+  return prompt(getServicePrompt);
+}
+
+function checkIsService(name) {
+  return _isServiceDirectory(name);
 }
 
 function _isServiceDirectory(serviceName) {
@@ -51,6 +59,9 @@ function _isServiceDirectory(serviceName) {
 }
 
 module.exports = {
-  createService,
-  checkIsService
+  newService,
+  shouldMakeNewService,
+  getServiceName,
+  checkIsService,
+  makeNewService
 };
