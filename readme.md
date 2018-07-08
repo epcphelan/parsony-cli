@@ -28,9 +28,3 @@ service.
 ``` 
 parsony +
 ```
-
-Create new model
-
-```
-parsony +m
-```
