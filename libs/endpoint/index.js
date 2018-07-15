@@ -211,7 +211,7 @@ function generateFunction(functionName, constArgs, description, sessionReq) {
  * @param {object} data - Parsony data object
  * @return {Promise.<*>}
  * @example
- \v ${JSON.stringify(constArgs, null, 2)}
+ \t ${JSON.stringify(constArgs, null, 2)}
  */
 exports.${functionName} = async data => {
   // * = required
@@ -233,28 +233,28 @@ exports.${functionName} = async data => {
 function generateConstants(params, session) {
   let out = "const { \n";
   out += params.reduce((s, p) => {
-    return s + `\v\v\v ${p.param},\v${paramsComments(p)} \n`;
+    return s + `\t ${p.param},\t${paramsComments(p)} \n`;
   }, "");
 
   if (session) {
-    out += "\v\v\v sessionObj: { userId }\v// from session \n";
+    out += "\t sessionObj: { userId }\t// from session \n";
   }
 
-  out += "\v } = data;";
+  out += "\t } = data;";
   return out;
 }
 
 function generateReturn(params, session) {
   let out = "return { \n";
   out += params.reduce((s, p) => {
-    return s + `\v\v\v ${p.param},\n`;
+    return s + `\t ${p.param},\n`;
   }, "");
 
   if (session) {
-    out += "\v\v\v userId \n";
+    out += "\t userId \n";
   }
 
-  out += "\v };";
+  out += "\t };";
   return out;
 }
 
