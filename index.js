@@ -5,6 +5,7 @@ const program = require("commander");
 const { newService } = require("./libs/service");
 const { newEndpoint } = require("./libs/endpoint");
 const { doSetup } = require("./libs/starter");
+const { newModel } = require("./libs/model");
 
 program.version("1.0.0").description("Parsony CLI");
 
@@ -25,5 +26,11 @@ program
   .alias("init")
   .description("Create new Parsony project.")
   .action(doSetup);
+
+program
+  .command('newModel')
+  .alias('+m')
+  .description('Create a new model')
+  .action(newModel);
 
 program.parse(process.argv);

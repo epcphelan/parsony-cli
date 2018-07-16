@@ -173,7 +173,16 @@ const runTestsPrompt = [
   }
 ];
 
-
+const makeModelPrompt = [
+  {
+    type: "input",
+    name: "name",
+    message: "Model name:",
+    validation:input =>{
+      return input.length > 1 ? true: "Name cannot be blank.";
+    }
+  }
+];
 
 module.exports = {
   initDBPrompt,
@@ -186,5 +195,6 @@ module.exports = {
   getServicePrompt,
   endpointDetailPrompt,
   configureDBPrompt,
-  runTestsPrompt
+  runTestsPrompt,
+  makeModelPrompt
 };
