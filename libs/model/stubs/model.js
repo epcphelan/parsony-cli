@@ -12,7 +12,7 @@
  * @return {*}
  */
 module.exports = (sequelize, DataTypes) => {
-  let MODEL_NAME = sequelize.define("MODEL_NAME", {
+  const MODEL_NAME = sequelize.define("MODEL_NAME", {
     // flag: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true }
   });
   MODEL_NAME.associate = (models) => {

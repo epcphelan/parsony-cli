@@ -4,12 +4,12 @@ const { prompt } = require("inquirer");
 const { makeServicePrompt, getServicePrompt } = require("../prompts");
 
 async function newService() {
-  const name = await getServiceName();
-  if (checkIsService(name)) {
+  const {service} = await getServiceName();
+  if (checkIsService(service)) {
     console.log("This service already exists.");
   } else {
     if (await shouldMakeNewService()) {
-      makeNewService(name);
+      makeNewService(service);
     }
   }
 }
