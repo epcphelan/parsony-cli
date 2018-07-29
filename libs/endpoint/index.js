@@ -210,22 +210,14 @@ function generateFunction(functionName, constArgs, description, sessionReq) {
  * ${description}
  * @param {object} data - Parsony data object
  * @return {Promise.<*>}
- * @example
- \t ${JSON.stringify(constArgs, null, 2)}
  */
 exports.${functionName} = async data => {
   // * = required
   ${generateConstants(constArgs, sessionReq)}
 
-  try{
-    /**
-     * @todo Implement method
-     */
-  } catch(e){
-    throw makeStandardError(ERROR)
-  }
-  
-  ${generateReturn(constArgs, sessionReq)}
+  /**
+   * @todo Implement method
+   */
 };
 `;
 }
@@ -241,20 +233,6 @@ function generateConstants(params, session) {
   }
 
   out += "\t } = data;";
-  return out;
-}
-
-function generateReturn(params, session) {
-  let out = "return { \n";
-  out += params.reduce((s, p) => {
-    return s + `\t ${p.param},\n`;
-  }, "");
-
-  if (session) {
-    out += "\t userId \n";
-  }
-
-  out += "\t };";
   return out;
 }
 
