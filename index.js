@@ -6,6 +6,8 @@ const { newService } = require("./libs/service");
 const { newEndpoint } = require("./libs/endpoint");
 const { doSetup } = require("./libs/starter");
 const { newModel } = require("./libs/model");
+const { newWebService } = require('./libs/webService');
+const { newWebEndpoint } = require('./libs/webEndpoint');
 
 program.version("1.0.0").description("Parsony CLI");
 
@@ -32,5 +34,17 @@ program
   .alias('+m')
   .description('Create a new model')
   .action(newModel);
+
+program
+  .command('newClientService')
+  .alias('+cs')
+  .description('Create a new WebClient service')
+  .action(newWebService);
+
+program
+  .command('addClientEndpoint')
+  .alias('+ce')
+  .description('Add new WebClient service')
+  .action(newWebEndpoint);
 
 program.parse(process.argv);

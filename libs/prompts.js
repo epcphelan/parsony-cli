@@ -184,6 +184,15 @@ const makeModelPrompt = [
   }
 ];
 
+const makeWebServicePrompt = [
+  {
+    type: "confirm",
+    name: "newService",
+    message: "Make new client service? ",
+    default: true
+  }
+];
+
 module.exports = {
   initDBPrompt,
   initProjectPrompt,
@@ -196,5 +205,6 @@ module.exports = {
   endpointDetailPrompt,
   configureDBPrompt,
   runTestsPrompt,
-  makeModelPrompt
+  makeModelPrompt,
+  makeWebServicePrompt
 };
