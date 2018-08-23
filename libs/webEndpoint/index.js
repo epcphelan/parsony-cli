@@ -76,13 +76,19 @@ async function createEndpoint(endpointName, service) {
     _servicesDirectory,
     'actions.js'
   );
-  fs.appendFileSync(actions, createAction(endpointName,service))
+  fs.appendFileSync(actions, createAction(endpointName,service));
+
+
+  const reducer = path.join(
+    _servicesDirectory,
+    'reducer.js'
+  );
+  fs.appendFileSync(reducer, createReducer(endpointName));
 }
 
 
 function createSelector(name){
-  return`
-  
+  return` 
 export function ${name}(state){
 \t return state[BRANCH].${name}
 }
@@ -92,16 +98,14 @@ export function ${name}(state){
 function createType(name, service){
   const type = camelToSnake(name).toUpperCase();
   return`
-  
 export const ${type} = '${service}.${name}';
-
   `
 }
 
 function camelToSnake(string){
   const upperChars = string.match(/([A-Z])/g);
   if (! upperChars) {
-    return this;
+    return string;
   }
   let str = string;
   for (let i = 0, n = upperChars.length; i < n; i++) {
@@ -115,7 +119,6 @@ function camelToSnake(string){
 
 function createStateSlug(name){
   return `
-  
 state.${name} = {
 \t isLoading:false,
 \t data: null,
@@ -124,10 +127,18 @@ state.${name} = {
   `
 }
 
+function createReducer(name){
+  return`
+function ${name}(state, action){
+  const res = parsonyResponse(state, action);
+  return {...res}
+}  
+  `
+}
+
 function createAction(name, service){
   const type = camelToSnake(name).toUpperCase();
-  return`
-  
+  return`  
 export function ${name}(){
 \t return dispatch => request('${service}.${name}', {}, TYPES.${type}, dispatch)
 }
