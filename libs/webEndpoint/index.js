@@ -139,8 +139,11 @@ function ${name}(state, action){
 function createAction(name, service){
   const type = camelToSnake(name).toUpperCase();
   return`  
-export function ${name}(){
-\t return dispatch => request('${service}.${name}', {}, TYPES.${type}, dispatch)
+export function ${name}({onSuccess, onError}={}){
+\t return async(dispatch) => {
+\t\t const res = await requestSync('${service}.${name}', {}, TYPES.${type}, dispatch);
+\t\t handleCallbacks(res, onSuccess, onError)
+\t}
 }
   `
 }
