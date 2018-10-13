@@ -118,13 +118,18 @@ async function addEndpointToService(args) {
     throw new Error(`Duplicate API endpoint: ${namespacedEndpoint} `);
   }
 
-  const updatedInterface = appendedInterface(interfaceObj, args);
+  const newInterface = compiledInterface(args);
   const newHandler = appendedFunction(args);
 
-  fs.writeFileSync(pathToInterface, updatedInterface);
-  fs.appendFileSync(pathToHandlers, newHandler);
+  fs.writeFileSync(
+    path.join(pathToInterface,`${args.endpoint}.json`),
+    JSON.stringify(newInterface,null,2));
 
-  return interfaceObj;
+  fs.writeFileSync(
+    path.join(pathToHandlers,`${args.endpoint}.js`),
+    newHandler);
+
+  return newInterface;
 }
 
 function getInterfaceObj(pathToInterface) {
@@ -170,12 +175,6 @@ function uniqueJSONEndpoint(jsonAPI, interfaceObj) {
   return true;
 }
 
-function appendedInterface(interfaceObj, args) {
-  let endpoints = interfaceObj.endpoints;
-  interfaceObj.endpoints = updatedEndpointsArray(endpoints, args);
-  return JSON.stringify(interfaceObj, null, 2);
-}
-
 function appendedFunction(args) {
   return generateFunction(
     args.endpoint,
@@ -185,8 +184,8 @@ function appendedFunction(args) {
   );
 }
 
-function updatedEndpointsArray(endpointsArray, newEndpointArgs) {
-  const newEndpointObj = {
+function compiledInterface(newEndpointArgs) {
+  return {
     json_api: newEndpointArgs.namespacedEndpoint,
     RESTUrl: `${newEndpointArgs.namespacedREST}`,
     method: newEndpointArgs.method,
@@ -199,26 +198,33 @@ function updatedEndpointsArray(endpointsArray, newEndpointArgs) {
     params: newEndpointArgs.params,
     returns: {},
     errors: []
-  };
-  endpointsArray.push(newEndpointObj);
-  return endpointsArray;
+  }
 }
 
 function generateFunction(functionName, constArgs, description, sessionReq) {
-  return `
+  return `const {
+  http: { makeStandardError },
+  models
+} = parsony.getBundle();
+
+const ask = require("../../../lib/access");
+const errors = require("../../../lib/errors.json");
+
 /**
  * ${description}
  * @param {object} data - Parsony data object
  * @return {Promise.<*>}
  */
-exports.${functionName} = async data => {
+async function ${functionName}(data){
   // * = required
   ${generateConstants(constArgs, sessionReq)}
 
   /**
    * @todo Implement method
    */
-};
+}
+
+exports.handler = ${functionName};
 `;
 }
 

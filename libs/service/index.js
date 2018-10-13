@@ -17,28 +17,27 @@ async function newService() {
 function makeNewService(serviceName) {
   const _servicesDirectory = path.join("services", serviceName);
   fs.mkdirSync(_servicesDirectory);
+  fs.mkdirSync(path.join(_servicesDirectory,'interfaces'));
+  fs.mkdirSync(path.join(_servicesDirectory,'handlers'));
 
-  const interfaceFile = `${serviceName}.interface.json`;
-  const handlersFile = `${serviceName}.handlers.js`;
 
-  const interfaceObj = {
-    handlers: handlersFile,
-    endpoints: []
-  };
-
-  fs.writeFileSync(
-    path.join(_servicesDirectory, interfaceFile),
-    JSON.stringify(interfaceObj, null, 2)
-  );
-
-  let template = path.join(
+  let handlersIndexPath = path.join(
     path.dirname(fs.realpathSync(__filename)),
     "stubs",
-    "handlers.template.js"
+    "handlers.index.js"
   );
 
-  let templateFile = fs.readFileSync(template);
-  fs.writeFileSync(path.join(_servicesDirectory, handlersFile), templateFile);
+  let interfacesIndexPath = path.join(
+    path.dirname(fs.realpathSync(__filename)),
+    "stubs",
+    "interfaces.index.js"
+  );
+
+  let handlersIndex = fs.readFileSync(handlersIndexPath);
+  fs.writeFileSync(path.join(_servicesDirectory, 'handlers','index.js'), handlersIndex);
+
+  let interfacesIndex = fs.readFileSync(interfacesIndexPath);
+  fs.writeFileSync(path.join(_servicesDirectory, 'interfaces','index.js'), interfacesIndex);
 }
 
 function shouldMakeNewService() {
